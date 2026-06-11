@@ -1,57 +1,27 @@
-# Integration 9A — Query Suite Notes
+python - <<'EOF'
+from SPARQLWrapper import SPARQLWrapper, JSON
+from rdflib import Graph
 
-Fill in one section per query (Q1–Q8) with:
-- **Intent:** one sentence stating what the query answers in business terms.
-- **Result:** the first 5 rows (or triple count for CONSTRUCT, boolean for ASK).
+PREFIX = """
+PREFIX : <http://aispire.example.org/publications/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+"""
 
-Use the template below.
+sparql = SPARQLWrapper("http://localhost:3030/publications/sparql")
+sparql.setReturnFormat(JSON)
 
----
+queries = {
+    "Q1": PREFIX + "SELECT DISTINCT ?author WHERE { ?paper :authoredBy ?author ; :publishedIn :NeurIPS . }",
+    "Q2": PREFIX + "SELECT ?topic (COUNT(?paper) AS ?n) WHERE { ?paper :topic ?topic . } GROUP BY ?topic",
+    "Q7": PREFIX + "SELECT ?paper ?cc WHERE { ?paper :citationCount ?cc . } ORDER BY DESC(?cc) LIMIT 5",
+    "Q8": PREFIX + "SELECT DISTINCT ?author WHERE { ?author ?label 'Hinton' . FILTER (?label = skos:prefLabel || ?label = skos:altLabel) }",
+}
 
-## Q1 — Authors at NeurIPS
-
-**Intent:** _TODO — one sentence._
-
-**Result:** _TODO — first 5 rows._
-
-## Q2 — Papers per topic
-
-**Intent:** _TODO._
-
-**Result:** _TODO — first 5 rows._
-
-## Q3 — Canonical coauthor pairs
-
-**Intent:** _TODO._
-
-**Result:** _TODO — first 5 rows._
-
-## Q4 — Papers and DOIs
-
-**Intent:** _TODO._
-
-**Result:** _TODO — first 5 rows, including one with unbound DOI._
-
-## Q5 — Prolific authors (ASK)
-
-**Intent:** _TODO._
-
-**Result:** _TODO — boolean._
-
-## Q6 — 2023 papers with authors (CONSTRUCT)
-
-**Intent:** _TODO._
-
-**Result:** _TODO — total triples emitted._
-
-## Q7 — Top 5 most-cited
-
-**Intent:** _TODO._
-
-**Result:** _TODO — five (paper, citationCount) rows._
-
-## Q8 — "Hinton" via SKOS
-
-**Intent:** _TODO._
-
-**Result:** _TODO — author URIs and which label matched._
+for name, q in queries.items():
+    sparql.setQuery(q)
+    r = sparql.query().convert()
+    rows = r["results"]["bindings"]
+    print(f"\n{name} — {len(rows)} rows:")
+    for row in rows[:5]:
+        print(" ", {k: v["value"].split("/")[-1] for k,v in row.items()})
+EOF
